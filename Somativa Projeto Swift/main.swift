@@ -2,13 +2,13 @@
 
 import Foundation
 
-enum TipoMensagem {
+enum TipoMensagem: Int {
     case promocao
     case lembrete
     case alerta
 }
 
-enum Prioridade {
+enum Prioridade: Int {
     case baixa
     case media
     case alta
@@ -124,15 +124,20 @@ func adicionarCanal(_ canais: inout [Notificavel], mensagens: [Mensagem]) {
 
     print("\n=== NOVO CANAL ===")
     listarMensagens(mensagens)
-    print("Selecione o ID da mensagem: ", terminator: "")
-
-    guard let idInput = readLine().flatMap(Int.init), mensagens.indices.contains(idInput) else {
-        print("ID inválido!")
+    guard let mensagemSelecionada = selecionarMensagem(mensagens) else {
+        print("Seleção de mensagem inválida!")
         return
     }
 
-    let mensagemSelecionada = mensagens[idInput]
+    guard let canal = criarCanal(mensagemSelecionada) else {
+        print("Falha ao criar o canal. Tente novamente.")
+        return
+    }
 
+    canais.append(canal)
+    print("Canal adicionado!")
+}
+func criarCanal(_ mensagem: Mensagem) -> Notificavel? {
     print("""
     \nSelecione o tipo de canal:
     1. Email
@@ -143,39 +148,55 @@ func adicionarCanal(_ canais: inout [Notificavel], mensagens: [Mensagem]) {
 
     guard let tipoCanal = readLine().flatMap(Int.init) else {
         print("Entrada inválida!")
-        return
+        return nil
     }
 
     switch tipoCanal {
     case 1:
-        print("Email: ", terminator: "")
-        guard let email = readLine(), !email.isEmpty else {
-            print("Email inválido!")
-            return
-        }
-        canais.append(Email(mensagem: mensagemSelecionada, enderecoEmail: email))
-
+        return criarCanalEmail(mensagem)
     case 2:
-        print("Telefone: ", terminator: "")
-        guard let telefone = readLine(), !telefone.isEmpty else {
-            print("Telefone inválido!")
-            return
-        }
-        canais.append(SMS(mensagem: mensagemSelecionada, numeroTelefone: telefone))
-
+        return criarCanalSMS(mensagem)
     case 3:
-        print("Token: ", terminator: "")
-        guard let token = readLine(), !token.isEmpty else {
-            print("Token inválido!")
-            return
-        }
-        canais.append(PushNotification(mensagem: mensagemSelecionada, tokenDispositivo: token))
-
+        return criarCanalPush(mensagem)
     default:
         print("Tipo inválido!")
+        return nil
     }
+}
 
-    print("Canal adicionado!")
+func criarCanalEmail(_ mensagem: Mensagem) -> Notificavel? {
+    print("Email: ", terminator: "")
+    guard let email = readLine(), !email.isEmpty else {
+        print("Email inválido!")
+        return nil
+    }
+    return Email(mensagem: mensagem, enderecoEmail: email)
+}
+
+func criarCanalSMS(_ mensagem: Mensagem) -> Notificavel? {
+    print("Telefone: ", terminator: "")
+    guard let telefone = readLine(), !telefone.isEmpty else {
+        print("Telefone inválido!")
+        return nil
+    }
+    return SMS(mensagem: mensagem, numeroTelefone: telefone)
+}
+
+func criarCanalPush(_ mensagem: Mensagem) -> Notificavel? {
+    print("Token: ", terminator: "")
+    guard let token = readLine(), !token.isEmpty else {
+        print("Token inválido!")
+        return nil
+    }
+    return PushNotification(mensagem: mensagem, tokenDispositivo: token)
+}
+
+func selecionarMensagem(_ mensagens: [Mensagem]) -> Mensagem? {
+    print("Selecione o ID da mensagem: ", terminator: "")
+    guard let idInput = readLine().flatMap(Int.init), mensagens.indices.contains(idInput) else {
+        return nil
+    }
+    return mensagens[idInput]
 }
 
 func enviarTodasNotificacoes(_ canais: [Notificavel]) {
